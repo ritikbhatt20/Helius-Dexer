@@ -8,9 +8,31 @@ export const Navbar = () => {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
 
+  // Function to check and set token
+  const checkToken = () => {
+    const storedToken = localStorage.getItem("token");
+    setToken(storedToken);
+  };
+
   useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, []);
+    // Initial check on mount
+    checkToken();
+
+    // Listen for storage events (e.g., when token is set or removed in another tab)
+    window.addEventListener("storage", checkToken);
+
+    // Listen for route changes to re-check token
+    const handleRouteChange = () => {
+      checkToken();
+    };
+
+    const interval = setInterval(checkToken, 500);
+
+    return () => {
+      window.removeEventListener("storage", checkToken);
+      clearInterval(interval);
+    };
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
