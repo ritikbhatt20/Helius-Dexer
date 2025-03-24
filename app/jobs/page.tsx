@@ -17,10 +17,18 @@ export default function Jobs() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { token } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
+  const { token, isLoading, checkToken } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    setIsClient(true);
+    checkToken();
+  }, [checkToken]);
+
+  useEffect(() => {
+    if (!isClient || isLoading) return;
+
     // Redirect to /login if not logged in
     if (!token) {
       router.push("/login");
@@ -30,7 +38,7 @@ export default function Jobs() {
     // Fetch jobs and connections if authenticated
     fetchJobs();
     fetchConnections();
-  }, [token, router]);
+  }, [token, router, isClient, isLoading]);
 
   const fetchJobs = async () => {
     try {
@@ -100,6 +108,11 @@ export default function Jobs() {
       console.error(err);
     }
   };
+
+  // Show a loading state while checking the token
+  if (isLoading || !isClient) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">

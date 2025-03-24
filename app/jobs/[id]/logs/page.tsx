@@ -8,10 +8,18 @@ export default function JobLogs() {
   const { id } = useParams();
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const { token } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
+  const { token, checkToken } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    setIsClient(true);
+    checkToken();
+  }, [checkToken]);
+
+  useEffect(() => {
+    if (!isClient) return;
+
     // Redirect to /login if not logged in
     if (!token) {
       router.push("/login");
@@ -20,7 +28,7 @@ export default function JobLogs() {
 
     // Fetch logs if authenticated and id is present
     if (id) fetchLogs(parseInt(id as string));
-  }, [id, token, router]);
+  }, [id, token, router, isClient]);
 
   const fetchLogs = async (jobId: number) => {
     try {
