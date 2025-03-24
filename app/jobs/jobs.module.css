@@ -1,0 +1,28 @@
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.input,
+.select {
+  padding: 0.75rem;
+  border: 1px solid #f5a623;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.error {
+  color: red;
+}
+
+.success {
+  color: green;
+}
