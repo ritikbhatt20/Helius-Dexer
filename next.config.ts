@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  serverExternalPackages: ["knex", "pg"], // Mark knex and pg as server-only
 };
 
-export default nextConfig;
+module.exports = nextConfig;
