@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../components/Button";
+import { useAuthStore } from "../lib/authStore";
 
 export default function Jobs() {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -15,15 +17,23 @@ export default function Jobs() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
+    // Redirect to /login if not logged in
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    // Fetch jobs and connections if authenticated
     fetchJobs();
     fetchConnections();
-  }, []);
+  }, [token, router]);
 
   const fetchJobs = async () => {
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const res = await fetch("/api/indexing-jobs", {
         method: "GET",
@@ -40,7 +50,6 @@ export default function Jobs() {
 
   const fetchConnections = async () => {
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const res = await fetch("/api/db-connections", {
         method: "GET",
@@ -59,7 +68,6 @@ export default function Jobs() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const res = await fetch("/api/indexing-jobs", {
         method: "POST",

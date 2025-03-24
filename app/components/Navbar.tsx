@@ -3,42 +3,37 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuthStore } from "../lib/authStore";
 
 export const Navbar = () => {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
-
-  // Function to check and set token
-  const checkToken = () => {
-    const storedToken = localStorage.getItem("token");
-    setToken(storedToken);
-  };
+  const { token, setToken, checkToken } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Initial check on mount
+    setIsClient(true);
     checkToken();
-
-    // Listen for storage events (e.g., when token is set or removed in another tab)
-    window.addEventListener("storage", checkToken);
-
-    // Listen for route changes to re-check token
-    const handleRouteChange = () => {
-      checkToken();
-    };
-
-    const interval = setInterval(checkToken, 500);
-
-    return () => {
-      window.removeEventListener("storage", checkToken);
-      clearInterval(interval);
-    };
-  }, [router]);
+  }, [checkToken]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
     setToken(null);
     router.push("/login");
   };
+
+  if (!isClient) {
+    return (
+      <nav className="bg-gradient-to-r from-helius-orange to-orange-500 p-4 flex justify-between items-center shadow-lg">
+        <Link href="/">
+          <h1 className="text-white text-2xl font-extrabold tracking-tight hover:text-helius-yellow transition-colors duration-300">
+            Helius Indexer
+          </h1>
+        </Link>
+        <div className="flex items-center gap-6">
+          {/* Don't render auth-dependent links during SSR */}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-gradient-to-r from-helius-orange to-orange-500 p-4 flex justify-between items-center shadow-lg">

@@ -1,20 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useAuthStore } from "../../../lib/authStore";
 
 export default function JobLogs() {
   const { id } = useParams();
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
+    // Redirect to /login if not logged in
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    // Fetch logs if authenticated and id is present
     if (id) fetchLogs(parseInt(id as string));
-  }, [id]);
+  }, [id, token, router]);
 
   const fetchLogs = async (jobId: number) => {
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const res = await fetch(`/api/indexing-jobs/${jobId}/logs`, {
         method: "GET",

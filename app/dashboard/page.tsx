@@ -1,8 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "../lib/authStore";
 
 export default function Dashboard() {
+  const { token } = useAuthStore();
+  const router = useRouter();
+
+  // Redirect to /login if not logged in
+  useEffect(() => {
+    if (!token) {
+      router.push("/login");
+    }
+  }, [token, router]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">

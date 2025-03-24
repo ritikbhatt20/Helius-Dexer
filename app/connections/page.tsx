@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "../components/Button";
+import { useAuthStore } from "../lib/authStore";
 
 export default function Connections() {
   const [connections, setConnections] = useState<any[]>([]);
@@ -16,19 +18,35 @@ export default function Connections() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isClient, setIsClient] = useState(false);
+  const { token, checkToken } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
+    // Mark that we're now on the client side
+    setIsClient(true);
+    // Check for token in localStorage
+    checkToken();
+  }, [checkToken]);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    console.log("token", token);
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     fetchConnections();
-  }, []);
+  }, [token, router, isClient]);
 
   const fetchConnections = async () => {
     try {
-      const token = localStorage.getItem("token"); // Get the JWT token
       if (!token) throw new Error("No authentication token found");
       const res = await fetch("/api/db-connections", {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`, // Add auth header
+          Authorization: `Bearer ${token}`,
         },
       });
       if (!res.ok) {
@@ -45,7 +63,6 @@ export default function Connections() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const testRes = await fetch("/api/db-connections/test", {
         method: "POST",

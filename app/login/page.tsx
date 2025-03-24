@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "../components/Button";
 import Link from "next/link";
+import { useAuthStore } from "../lib/authStore";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -11,14 +11,14 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { token, setToken } = useAuthStore();
 
   // Redirect if already logged in
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (token) {
       router.push("/dashboard");
     }
-  }, [router]);
+  }, [token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +31,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("token", data.token);
+        setToken(data.token); // Update global state
         router.push("/dashboard");
       } else {
         setError(data.error || "Login failed");
