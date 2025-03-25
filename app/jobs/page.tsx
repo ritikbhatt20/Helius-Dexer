@@ -6,12 +6,30 @@ import Link from "next/link";
 import { Button } from "../components/Button";
 import { useAuthStore } from "../lib/authStore";
 
+// Define types for jobs and connections
+interface Job {
+  id: number;
+  job_type: "nft_bids" | "nft_prices" | "token_borrowing" | "token_prices";
+  target_table: string;
+  status: "pending" | "active" | "paused" | "completed" | "failed";
+  db_connection_id: number;
+}
+
+interface Connection {
+  id: number;
+  name: string;
+}
+
 export default function Jobs() {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [connections, setConnections] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [form, setForm] = useState({
     db_connection_id: "",
-    job_type: "nft_bids" as const,
+    job_type: "nft_bids" as
+      | "nft_bids"
+      | "nft_prices"
+      | "token_borrowing"
+      | "token_prices",
     configuration: "{}",
     target_table: "",
   });
@@ -48,10 +66,10 @@ export default function Jobs() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.statusText}`);
-      const data = await res.json();
+      const data: Job[] = await res.json();
       setJobs(data);
-    } catch (err) {
-      setError("Failed to fetch jobs");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch jobs");
       console.error(err);
     }
   };
@@ -65,18 +83,29 @@ export default function Jobs() {
       });
       if (!res.ok)
         throw new Error(`Failed to fetch connections: ${res.statusText}`);
-      const data = await res.json();
+      const data: Connection[] = await res.json();
       setConnections(data);
-    } catch (err) {
-      setError("Failed to fetch connections");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch connections");
       console.error(err);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
     try {
       if (!token) throw new Error("No authentication token found");
+
+      // Validate configuration JSON
+      let parsedConfig;
+      try {
+        parsedConfig = JSON.parse(form.configuration);
+      } catch (jsonErr) {
+        throw new Error("Invalid JSON in configuration field");
+      }
+
       const res = await fetch("/api/indexing-jobs", {
         method: "POST",
         headers: {
@@ -86,10 +115,11 @@ export default function Jobs() {
         body: JSON.stringify({
           db_connection_id: parseInt(form.db_connection_id),
           job_type: form.job_type,
-          configuration: JSON.parse(form.configuration),
+          configuration: parsedConfig,
           target_table: form.target_table,
         }),
       });
+
       if (res.ok) {
         setSuccess("Job created successfully");
         fetchJobs();
@@ -101,11 +131,11 @@ export default function Jobs() {
         });
       } else {
         const errorData = await res.json();
-        setError(errorData.error || "Failed to create job");
+        throw new Error(errorData.error || "Failed to create job");
       }
-    } catch (err) {
-      setError("Failed to create job");
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || "Failed to create job");
+      console.error("Error creating job:", err);
     }
   };
 
@@ -197,7 +227,14 @@ export default function Jobs() {
               <select
                 value={form.job_type}
                 onChange={(e) =>
-                  setForm({ ...form, job_type: e.target.value as any })
+                  setForm({
+                    ...form,
+                    job_type: e.target.value as
+                      | "nft_bids"
+                      | "nft_prices"
+                      | "token_borrowing"
+                      | "token_prices",
+                  })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
@@ -214,7 +251,7 @@ export default function Jobs() {
               </label>
               <input
                 type="text"
-                placeholder='{"key": "value"}'
+                placeholder='{"marketplace_addresses": ["M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K"]}'
                 value={form.configuration}
                 onChange={(e) =>
                   setForm({ ...form, configuration: e.target.value })

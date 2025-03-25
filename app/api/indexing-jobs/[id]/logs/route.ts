@@ -5,13 +5,15 @@ import { JobLogModel } from "../../../../lib/models/jobLog";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await authenticate(req);
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const jobId = parseInt(params.id);
+  // Await the params object before accessing properties
+  const { id } = await params;
+  const jobId = parseInt(id);
   const job = await IndexingJobModel.findById(jobId);
 
   if (!job || job.user_id !== user.id) {

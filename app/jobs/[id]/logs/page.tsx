@@ -9,7 +9,7 @@ export default function JobLogs() {
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [isClient, setIsClient] = useState(false);
-  const { token, checkToken } = useAuthStore();
+  const { token, isLoading, checkToken } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function JobLogs() {
   }, [checkToken]);
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || isLoading) return;
 
     // Redirect to /login if not logged in
     if (!token) {
@@ -28,7 +28,7 @@ export default function JobLogs() {
 
     // Fetch logs if authenticated and id is present
     if (id) fetchLogs(parseInt(id as string));
-  }, [id, token, router, isClient]);
+  }, [id, token, router, isClient, isLoading]); // Added isLoading to dependencies
 
   const fetchLogs = async (jobId: number) => {
     try {
@@ -37,14 +37,24 @@ export default function JobLogs() {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error(`Failed to fetch logs: ${res.statusText}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(
+          errorData.error || `Failed to fetch logs: ${res.statusText}`
+        );
+      }
       const data = await res.json();
       setLogs(data);
-    } catch (err) {
-      setError("Failed to fetch logs");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch logs");
       console.error(err);
     }
   };
+
+  // Show a loading state while checking the token
+  if (isLoading || !isClient) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

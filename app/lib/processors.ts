@@ -1,9 +1,12 @@
-import { IndexingJobModel } from "./models/indexingJob";
+import {
+  IndexingJobModel,
+  TokenBorrowingConfig,
+  NftPricesConfig,
+} from "./models/indexingJob";
 import { DatabaseConnectionModel } from "./models/dbConnection";
 import { JobLogModel } from "./models/jobLog";
 import { heliusService } from "./helius";
 import knex from "knex";
-import clientSchemas from "./utils/clientSchema";
 import {
   extractPoolDataFromTransactions,
   extractReserveDataFromTransactions,
@@ -40,61 +43,54 @@ async function getClientDbConnection(jobId: number) {
   return { clientDb, job };
 }
 
-async function ensureTableExists(
-  db: knex.Knex,
-  jobType: keyof typeof clientSchemas,
-  tableName: string
-) {
-  const schemaTemplate = clientSchemas[jobType];
-  if (!schemaTemplate) {
-    throw new Error(`No schema template found for job type: ${jobType}`);
-  }
-
-  const schemaSql = schemaTemplate.replace(/\${tableName}/g, tableName);
-  await db.raw(schemaSql);
-}
-
 export async function processNftBids(jobId: number, data: any): Promise<any> {
+  let clientDb: knex.Knex | undefined;
   try {
-    const { clientDb, job } = await getClientDbConnection(jobId);
-    await ensureTableExists(clientDb, job.job_type, job.target_table);
+    const { clientDb: db, job } = await getClientDbConnection(jobId);
+    clientDb = db;
 
-    for (const transaction of data.transactions) {
+    let processedCount = 0;
+    for (const transaction of data.transactions || []) {
       if (transaction.type !== "NFT_BID") continue;
 
       const { nft, marketplace, buyer, amount, bidId, expiry } =
-        transaction.events.nft?.bid || {};
+        transaction.events?.nft?.bid || {};
 
       if (!nft || !marketplace || !buyer || !amount) continue;
 
-      await clientDb(job.target_table)
-        .insert({
-          marketplace: marketplace.name || "unknown",
-          auction_house: marketplace.programId || null,
-          token_address: nft.address,
-          token_mint: nft.mint,
-          buyer: buyer,
-          price: amount,
-          token_size: nft.tokenStandard === "NonFungible" ? 1 : null,
-          expiry: expiry ? new Date(expiry) : null,
-          bid_id: bidId || null,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        .onConflict(["marketplace", "bid_id"])
-        .merge(["price", "updated_at"])
-        .returning("*");
+      const bidData = {
+        marketplace: marketplace.name || "unknown",
+        auction_house: marketplace.programId || null,
+        token_address: nft.address,
+        token_mint: nft.mint,
+        buyer: buyer,
+        price: amount,
+        token_size: nft.tokenStandard === "NonFungible" ? 1 : null,
+        expiry: expiry ? new Date(expiry) : null,
+        bid_id: bidId || null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      await IndexingJobModel.insertIntoTargetTable(
+        job.target_table,
+        bidData,
+        "nft_bids"
+      );
+      processedCount++;
     }
 
     await JobLogModel.create({
       job_id: jobId,
       log_level: "info",
-      message: `Processed ${data.transactions.length} transactions`,
-      details: { count: data.transactions.length },
+      message: `Processed ${processedCount} NFT bid transactions`,
+      details: {
+        processedCount,
+        totalTransactions: data.transactions?.length || 0,
+      },
     });
 
-    await clientDb.destroy();
-    return { success: true, processedCount: data.transactions.length };
+    return { success: true, processedCount };
   } catch (error) {
     console.error(`Error processing NFT bids for job ${jobId}:`, error);
     await JobLogModel.create({
@@ -104,18 +100,27 @@ export async function processNftBids(jobId: number, data: any): Promise<any> {
       details: { error: (error as Error).message },
     });
     throw error;
+  } finally {
+    if (clientDb) {
+      await clientDb.destroy();
+    }
   }
 }
 
 export async function processNftPrices(jobId: number, data: any): Promise<any> {
+  let clientDb: knex.Knex | undefined;
   try {
-    const { clientDb, job } = await getClientDbConnection(jobId);
-    await ensureTableExists(clientDb, job.job_type, job.target_table);
+    const { clientDb: db, job } = await getClientDbConnection(jobId);
+    clientDb = db;
 
-    for (const transaction of data.transactions) {
+    // Type guard to ensure job.configuration is NftPricesConfig
+    const config = job.configuration as NftPricesConfig;
+
+    let processedCount = 0;
+    for (const transaction of data.transactions || []) {
       if (!["NFT_LISTING", "NFT_SALE"].includes(transaction.type)) continue;
 
-      const nftEvent = transaction.events.nft;
+      const nftEvent = transaction.events?.nft;
       if (!nftEvent) continue;
 
       if (transaction.type === "NFT_LISTING" && nftEvent.listing) {
@@ -124,8 +129,8 @@ export async function processNftPrices(jobId: number, data: any): Promise<any> {
 
         if (!nft || !marketplace || !seller || !amount) continue;
 
-        let priceUsd = null;
-        if (job.configuration.include_usd_prices) {
+        let priceUsd: number | null = null;
+        if (config.include_usd_prices) {
           try {
             const priceData = await heliusService.getTokenPrice(
               marketplace.paymentMint
@@ -138,22 +143,25 @@ export async function processNftPrices(jobId: number, data: any): Promise<any> {
           }
         }
 
-        await clientDb(job.target_table)
-          .insert({
-            marketplace: marketplace.name || "unknown",
-            token_address: nft.address,
-            token_mint: nft.mint,
-            collection_address: nft.collection?.address || null,
-            price_lamports: amount,
-            price_usd: priceUsd,
-            seller: seller,
-            listing_id: listingId || `${nft.mint}-${seller}-${amount}`,
-            created_at: new Date(),
-            updated_at: new Date(),
-          })
-          .onConflict(["marketplace", "listing_id"])
-          .merge(["price_lamports", "price_usd", "updated_at"])
-          .returning("*");
+        const listingData = {
+          marketplace: marketplace.name || "unknown",
+          token_address: nft.address,
+          token_mint: nft.mint,
+          collection_address: nft.collection?.address || null,
+          price_lamports: amount,
+          price_usd: priceUsd,
+          seller: seller,
+          listing_id: listingId || `${nft.mint}-${seller}-${amount}`,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        await IndexingJobModel.insertIntoTargetTable(
+          job.target_table,
+          listingData,
+          "nft_prices"
+        );
+        processedCount++;
       }
 
       if (transaction.type === "NFT_SALE" && nftEvent.sale) {
@@ -164,18 +172,21 @@ export async function processNftPrices(jobId: number, data: any): Promise<any> {
         await clientDb(job.target_table)
           .where({ token_mint: nft.mint })
           .delete();
+        processedCount++;
       }
     }
 
     await JobLogModel.create({
       job_id: jobId,
       log_level: "info",
-      message: `Processed ${data.transactions.length} transactions`,
-      details: { count: data.transactions.length },
+      message: `Processed ${processedCount} NFT price transactions`,
+      details: {
+        processedCount,
+        totalTransactions: data.transactions?.length || 0,
+      },
     });
 
-    await clientDb.destroy();
-    return { success: true, processedCount: data.transactions.length };
+    return { success: true, processedCount };
   } catch (error) {
     console.error(`Error processing NFT prices for job ${jobId}:`, error);
     await JobLogModel.create({
@@ -185,6 +196,10 @@ export async function processNftPrices(jobId: number, data: any): Promise<any> {
       details: { error: (error as Error).message },
     });
     throw error;
+  } finally {
+    if (clientDb) {
+      await clientDb.destroy();
+    }
   }
 }
 
@@ -192,52 +207,56 @@ export async function processTokenBorrowing(
   jobId: number,
   data: any
 ): Promise<any> {
+  let clientDb: knex.Knex | undefined;
   try {
-    const { clientDb, job } = await getClientDbConnection(jobId);
-    await ensureTableExists(clientDb, job.job_type, job.target_table);
+    const { clientDb: db, job } = await getClientDbConnection(jobId);
+    clientDb = db;
 
-    const { protocols = [], reserve_addresses = [] } = job.configuration;
+    // Type guard to ensure job.configuration is TokenBorrowingConfig
+    const config = job.configuration as TokenBorrowingConfig;
+    const protocols = config.protocol_addresses || [];
+    const reserve_addresses = config.reserve_addresses || [];
+
     const extractedReserveData = extractReserveDataFromTransactions(
-      data.transactions,
+      data.transactions || [],
       protocols,
       reserve_addresses
     );
 
+    let processedCount = 0;
     for (const reserve of extractedReserveData) {
-      await clientDb(job.target_table)
-        .insert({
-          protocol: reserve.protocol,
-          reserve_address: reserve.address,
-          token_mint: reserve.tokenMint,
-          token_symbol: reserve.tokenSymbol,
-          available_amount: reserve.availableAmount,
-          borrow_apy: reserve.borrowApy,
-          ltv_ratio: reserve.ltvRatio,
-          liquidation_threshold: reserve.liquidationThreshold,
-          liquidation_penalty: reserve.liquidationPenalty,
-          updated_at: new Date(),
-        })
-        .onConflict(["protocol", "reserve_address"])
-        .merge([
-          "available_amount",
-          "borrow_apy",
-          "ltv_ratio",
-          "liquidation_threshold",
-          "liquidation_penalty",
-          "updated_at",
-        ])
-        .returning("*");
+      const reserveData = {
+        protocol: reserve.protocol,
+        reserve_address: reserve.address,
+        token_mint: reserve.tokenMint,
+        token_symbol: reserve.tokenSymbol,
+        available_amount: reserve.availableAmount,
+        borrow_apy: reserve.borrowApy,
+        ltv_ratio: reserve.ltvRatio,
+        liquidation_threshold: reserve.liquidationThreshold,
+        liquidation_penalty: reserve.liquidationPenalty,
+        updated_at: new Date(),
+      };
+
+      await IndexingJobModel.insertIntoTargetTable(
+        job.target_table,
+        reserveData,
+        "token_borrowing"
+      );
+      processedCount++;
     }
 
     await JobLogModel.create({
       job_id: jobId,
       log_level: "info",
-      message: `Processed ${extractedReserveData.length} reserve updates`,
-      details: { count: extractedReserveData.length },
+      message: `Processed ${processedCount} token borrowing reserve updates`,
+      details: {
+        processedCount,
+        totalTransactions: data.transactions?.length || 0,
+      },
     });
 
-    await clientDb.destroy();
-    return { success: true, processedCount: extractedReserveData.length };
+    return { success: true, processedCount };
   } catch (error) {
     console.error(`Error processing token borrowing for job ${jobId}:`, error);
     await JobLogModel.create({
@@ -247,6 +266,10 @@ export async function processTokenBorrowing(
       details: { error: (error as Error).message },
     });
     throw error;
+  } finally {
+    if (clientDb) {
+      await clientDb.destroy();
+    }
   }
 }
 
@@ -254,40 +277,46 @@ export async function processTokenPrices(
   jobId: number,
   data: any
 ): Promise<any> {
+  let clientDb: knex.Knex | undefined;
   try {
-    const { clientDb, job } = await getClientDbConnection(jobId);
-    await ensureTableExists(clientDb, job.job_type, job.target_table);
+    const { clientDb: db, job } = await getClientDbConnection(jobId);
+    clientDb = db;
 
     const extractedPoolData = extractPoolDataFromTransactions(
-      data.transactions
+      data.transactions || []
     );
 
+    let processedCount = 0;
     for (const pool of extractedPoolData) {
-      await clientDb(job.target_table)
-        .insert({
-          token_mint: pool.tokenMint,
-          token_symbol: pool.tokenSymbol,
-          dex: pool.dex,
-          pool_address: pool.poolAddress,
-          price_usd: pool.priceUsd,
-          volume_24h: pool.volume24h,
-          liquidity_usd: pool.liquidityUsd,
-          updated_at: new Date(),
-        })
-        .onConflict(["dex", "pool_address"])
-        .merge(["price_usd", "volume_24h", "liquidity_usd", "updated_at"])
-        .returning("*");
-    }
+      const poolData = {
+        token_mint: pool.tokenMint,
+        token_symbol: pool.tokenSymbol,
+        dex: pool.dex,
+        pool_address: pool.poolAddress,
+        price_usd: pool.priceUsd,
+        volume_24h: pool.volume24h,
+        liquidity_usd: pool.liquidityUsd,
+        updated_at: new Date(),
+      };
 
+      await IndexingJobModel.insertIntoTargetTable(
+        job.target_table,
+        poolData,
+        "token_prices"
+      );
+      processedCount++;
+    }
     await JobLogModel.create({
       job_id: jobId,
       log_level: "info",
-      message: `Processed ${extractedPoolData.length} token price updates`,
-      details: { count: extractedPoolData.length },
+      message: `Processed ${processedCount} token price updates`,
+      details: {
+        processedCount,
+        totalTransactions: data.transactions?.length || 0,
+      },
     });
 
-    await clientDb.destroy();
-    return { success: true, processedCount: extractedPoolData.length };
+    return { success: true, processedCount };
   } catch (error) {
     console.error(`Error processing token prices for job ${jobId}:`, error);
     await JobLogModel.create({
@@ -297,5 +326,9 @@ export async function processTokenPrices(
       details: { error: (error as Error).message },
     });
     throw error;
+  } finally {
+    if (clientDb) {
+      await clientDb.destroy();
+    }
   }
 }

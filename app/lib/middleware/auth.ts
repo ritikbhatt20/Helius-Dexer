@@ -12,10 +12,12 @@ export async function authenticate(
 
   const token = authHeader.split(" ")[1];
   try {
+    console.log("Verifying token:", token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as {
       id: number;
       email: string;
     };
+    console.log("Decoded token:", decoded);
     const user = await UserModel.findById(decoded.id);
     if (!user) return null;
     return { id: user.id, email: user.email };

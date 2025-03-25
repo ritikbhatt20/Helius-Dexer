@@ -5,27 +5,46 @@ import {
   tokenBorrowingQueue,
   tokenPricesQueue,
 } from "../../../../lib/queues";
+import { IndexingJobModel } from "../../../../lib/models/indexingJob"; // Adjust path as needed
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { jobType: string; jobId: string } }
+  { params }: { params: Promise<{ jobType: string; jobId: string }> }
 ) {
-  const { jobType, jobId } = params;
+  // Authenticate the request
+  const authHeader = req.headers.get("Authorization");
+  const expectedAuthHeader = process.env.WEBHOOK_AUTH_HEADER;
+
+  if (expectedAuthHeader && authHeader !== expectedAuthHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Await the params object
+  const { jobType, jobId } = await params;
+  const jobIdNum = parseInt(jobId);
+
+  // Validate the job exists
+  const job = await IndexingJobModel.findById(jobIdNum);
+  if (!job) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  // Parse the webhook data
   const data = await req.json();
 
   try {
     switch (jobType) {
       case "nft_bids":
-        await nftBidsQueue.add({ jobId: parseInt(jobId), data });
+        await nftBidsQueue.add({ jobId: jobIdNum, data });
         break;
       case "nft_prices":
-        await nftPricesQueue.add({ jobId: parseInt(jobId), data });
+        await nftPricesQueue.add({ jobId: jobIdNum, data });
         break;
       case "token_borrowing":
-        await tokenBorrowingQueue.add({ jobId: parseInt(jobId), data });
+        await tokenBorrowingQueue.add({ jobId: jobIdNum, data });
         break;
       case "token_prices":
-        await tokenPricesQueue.add({ jobId: parseInt(jobId), data });
+        await tokenPricesQueue.add({ jobId: jobIdNum, data });
         break;
       default:
         return NextResponse.json(

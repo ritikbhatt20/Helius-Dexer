@@ -1,7 +1,13 @@
 import axios from "axios";
 import { Connection } from "@solana/web3.js";
 import dotenv from "dotenv";
-import { JobType } from "./models/indexingJob";
+import {
+  JobType,
+  NftBidsConfig,
+  NftPricesConfig,
+  TokenBorrowingConfig,
+  TokenPricesConfig,
+} from "./models/indexingJob";
 
 dotenv.config();
 
@@ -10,11 +16,10 @@ const HELIUS_API_URL = "https://api.helius.xyz/v0";
 const RPC_URL = `https://rpc.helius.xyz/?api-key=${HELIUS_API_KEY}`;
 
 export interface HeliusWebHookConfig {
-  webHookURL: string;
+  webhookURL: string; // Updated to match Helius API field name
   transactionTypes: string[];
-  accountAddresses?: string[];
-  accountAddressOwners?: string[];
-  webHookType: "enhanced" | "raw";
+  accountAddresses: string[];
+  webhookType: "enhanced" | "raw"; // Updated to match Helius API field name
   authHeader?: string;
   txnStatus?: "confirmed" | "finalized";
 }
@@ -29,6 +34,7 @@ export class HeliusService {
   async createWebHook(config: HeliusWebHookConfig): Promise<string> {
     try {
       const url = `${HELIUS_API_URL}/webhooks?api-key=${HELIUS_API_KEY}`;
+      console.log("Creating webhook with config:", config);
       const response = await axios.post(url, config, {
         headers: { "Content-Type": "application/json" },
       });
@@ -36,15 +42,17 @@ export class HeliusService {
       return response.data.webhookID;
     } catch (error) {
       console.error("Error creating Helius webHook:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Helius API response:", error.response.data);
+      }
       throw new Error("Failed to create Helius webHook");
     }
   }
 
   async deleteWebHook(webHookId: string): Promise<void> {
     try {
-      const url = `${HELIUS_API_URL}/webhooks?api-key=${HELIUS_API_KEY}`;
+      const url = `${HELIUS_API_URL}/webhooks/${webHookId}?api-key=${HELIUS_API_KEY}`; // Fixed URL
       await axios.delete(url, {
-        data: { webHookID: webHookId },
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
@@ -96,11 +104,15 @@ export class HeliusService {
   static getWebHookConfigForJobType(
     jobType: JobType,
     jobId: number,
-    config: Record<string, any>
+    config:
+      | NftBidsConfig
+      | NftPricesConfig
+      | TokenBorrowingConfig
+      | TokenPricesConfig
   ): HeliusWebHookConfig {
     const baseConfig = {
-      webHookURL: `${process.env.WEBHOOK_BASE_URL}/api/webhooks/${jobType}/${jobId}`,
-      webHookType: "enhanced" as const,
+      webhookURL: `${process.env.WEBHOOK_BASE_URL}/api/webhooks/${jobType}/${jobId}`, // Updated field name
+      webhookType: "enhanced" as const, // Updated field name
       txnStatus: "confirmed" as const,
       authHeader: process.env.WEBHOOK_AUTH_HEADER,
     };
@@ -110,27 +122,32 @@ export class HeliusService {
         return {
           ...baseConfig,
           transactionTypes: ["NFT_BID"],
-          accountAddresses: config.collection_addresses || [],
-          accountAddressOwners: config.marketplace_addresses || [],
+          accountAddresses: [
+            ...((config as NftBidsConfig).collection_addresses || []),
+            ...((config as NftBidsConfig).marketplace_addresses || []),
+          ],
         };
       case "nft_prices":
         return {
           ...baseConfig,
           transactionTypes: ["NFT_LISTING", "NFT_SALE"],
-          accountAddresses: config.collection_addresses || [],
-          accountAddressOwners: config.marketplace_addresses || [],
+          accountAddresses: [
+            ...((config as NftPricesConfig).collection_addresses || []),
+            ...((config as NftPricesConfig).marketplace_addresses || []),
+          ],
         };
       case "token_borrowing":
         return {
           ...baseConfig,
           transactionTypes: ["SWAP", "UNKNOWN"],
-          accountAddressOwners: config.protocol_addresses || [],
+          accountAddresses:
+            (config as TokenBorrowingConfig).protocol_addresses || [],
         };
       case "token_prices":
         return {
           ...baseConfig,
           transactionTypes: ["SWAP"],
-          accountAddressOwners: config.dex_addresses || [],
+          accountAddresses: (config as TokenPricesConfig).dex_addresses || [],
         };
       default:
         throw new Error(`Unknown job type: ${jobType}`);
