@@ -64,7 +64,7 @@ setupJobQueue.process(async (job) => {
         });
         throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
   }
 });
@@ -174,7 +174,6 @@ setupJobQueue.on("failed", (job, error) => {
   console.error(`Job ${job.id} failed with error:`, error);
 });
 
-// Add error handling for other queues
 [nftBidsQueue, nftPricesQueue, tokenBorrowingQueue, tokenPricesQueue].forEach(
   (queue) => {
     queue.on("failed", async (job, error) => {

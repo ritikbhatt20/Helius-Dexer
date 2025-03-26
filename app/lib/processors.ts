@@ -26,15 +26,12 @@ async function getClientDbConnection(jobId: number) {
   }
 
   const password = DatabaseConnectionModel.getDecryptedPassword(dbConn);
+  const connectionString = `postgresql://${dbConn.username}:${password}@${dbConn.host}:${dbConn.port}/${dbConn.database_name}`;
 
   const clientDb = knex({
     client: "pg",
     connection: {
-      host: dbConn.host,
-      port: dbConn.port,
-      user: dbConn.username,
-      password,
-      database: dbConn.database_name,
+      connectionString,
       ssl: dbConn.ssl ? { rejectUnauthorized: false } : undefined,
     },
     pool: { min: 0, max: 5 },
@@ -113,7 +110,6 @@ export async function processNftPrices(jobId: number, data: any): Promise<any> {
     const { clientDb: db, job } = await getClientDbConnection(jobId);
     clientDb = db;
 
-    // Type guard to ensure job.configuration is NftPricesConfig
     const config = job.configuration as NftPricesConfig;
 
     let processedCount = 0;
@@ -212,7 +208,6 @@ export async function processTokenBorrowing(
     const { clientDb: db, job } = await getClientDbConnection(jobId);
     clientDb = db;
 
-    // Type guard to ensure job.configuration is TokenBorrowingConfig
     const config = job.configuration as TokenBorrowingConfig;
     const protocols = config.protocol_addresses || [];
     const reserve_addresses = config.reserve_addresses || [];
