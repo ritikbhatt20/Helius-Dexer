@@ -21,8 +21,7 @@ export const HoverEffect = ({
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-2   py-10", className)}>
       {items.map((item, idx) => (
-        <Link
-          href={item?.link}
+        <div
           key={item?.link}
           className="relative group block p-2 h-full w-full"
           onMouseEnter={() => setHoveredIndex(idx)}
@@ -52,7 +51,7 @@ export const HoverEffect = ({
               <Button className="mt-4">{item.text}</Button>
             </Link>
           </Card>
-        </Link>
+        </div>
       ))}
     </div>
   );

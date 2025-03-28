@@ -26,7 +26,7 @@ export default function Dashboard() {
       text: "Go to Connections",
     },
     {
-      title: "Netflix",
+      title: "Manage Jobs",
       description: "Create and monitor indexing jobs for your blockchain data.",
       link: "/jobs",
       text: "Go to Jobs",
