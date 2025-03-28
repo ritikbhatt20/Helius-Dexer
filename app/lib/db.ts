@@ -7,31 +7,23 @@ dotenv.config();
 export const db = knex({
   client: "pg",
   connection: {
-    host: "db.ezbxmazmjylxmnprohlx.supabase.co",
-    port: 5432,
-    user: "postgres",
-    password: "helius_indexer",
-    database: "postgres",
+    connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false,
     },
   },
   pool: {
     min: 0,
-    max: 10,
+    max: 10, // Adjust based on Neon's connection limits (free tier is ~20)
     acquireTimeoutMillis: 10000,
     createTimeoutMillis: 10000,
   },
-  debug: true,
+  debug: true, // Keep for troubleshooting
 });
 
 export async function validateDatabaseConnection() {
   const client = new Client({
-    host: "db.ezbxmazmjylxmnprohlx.supabase.co",
-    port: 5432,
-    user: "postgres",
-    password: "helius_indexer",
-    database: "postgres",
+    connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false,
     },
@@ -61,7 +53,7 @@ export async function validateDatabaseConnection() {
     // Ensure connection is closed even on error
     try {
       await client.end();
-    } catch {}
+    } catch { }
 
     return false;
   }
