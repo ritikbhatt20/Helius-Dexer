@@ -145,8 +145,8 @@ export default function Jobs() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6">Indexing Jobs</h2>
+    <div className="max-w-6xl mx-auto px-4 py-20">
+      <h2 className="text-3xl font-bold text-white mb-6">Indexing Jobs</h2>
 
       {error && (
         <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
@@ -193,14 +193,14 @@ export default function Jobs() {
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+      <div className="bg-black rounded-lg shadow-lg shadow-red-500/50 p-6 border-2 border-gray-800">
+        <h3 className="text-xl font-semibold text-white mb-4">
           Create New Indexing Job
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Database Connection
               </label>
               <select
@@ -209,7 +209,7 @@ export default function Jobs() {
                   setForm({ ...form, db_connection_id: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               >
                 <option value="">Select Connection</option>
                 {connections.map((conn) => (
@@ -221,7 +221,7 @@ export default function Jobs() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Job Type
               </label>
               <select
@@ -236,7 +236,7 @@ export default function Jobs() {
                       | "token_prices",
                   })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               >
                 <option value="nft_bids">NFT Bids</option>
                 <option value="nft_prices">NFT Prices</option>
@@ -246,7 +246,7 @@ export default function Jobs() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Configuration (JSON)
               </label>
               <input
@@ -257,12 +257,12 @@ export default function Jobs() {
                   setForm({ ...form, configuration: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Target Table
               </label>
               <input
@@ -273,7 +273,7 @@ export default function Jobs() {
                   setForm({ ...form, target_table: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function Jobs() {
           <div className="pt-4">
             <Button
               type="submit"
-              className="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-300"
+              className="w-full md:w-auto px-6 py-3 bg-helius-orange/80 text-white font-medium rounded-md hover:!bg-helius-orange focus:outline-none focus:ring-2 focus:ring-helius-orange/70 focus:ring-offset-2 transition-colors duration-300"
             >
               Create Job
             </Button>

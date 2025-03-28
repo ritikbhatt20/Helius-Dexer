@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../components/Button";
 import { useAuthStore } from "../lib/authStore";
@@ -23,9 +23,7 @@ export default function Connections() {
   const router = useRouter();
 
   useEffect(() => {
-    // Mark that we're now on the client side
     setIsClient(true);
-    // Check for token in localStorage
     checkToken();
   }, [checkToken]);
 
@@ -103,12 +101,15 @@ export default function Connections() {
     }
   };
 
+  useEffect(() => {
+    console.log(connections);
+  }, [connections]);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6">
+    <div className="max-w-6xl mx-auto px-4 py-20">
+      <h2 className="text-3xl font-bold text-white mb-6">
         Database Connections
       </h2>
-
       {error && (
         <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
           <p>{error}</p>
@@ -152,14 +153,14 @@ export default function Connections() {
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+      <div className="bg-black rounded-xl shadow-lg shadow-red-500/30 p-6 border-2 border-gray-900">
+        <h3 className="text-xl font-semibold text-white mb-4">
           Add New Connection
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Connection Name
               </label>
               <input
@@ -168,12 +169,12 @@ export default function Connections() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Host
               </label>
               <input
@@ -182,12 +183,12 @@ export default function Connections() {
                 value={form.host}
                 onChange={(e) => setForm({ ...form, host: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Port
               </label>
               <input
@@ -198,12 +199,12 @@ export default function Connections() {
                   setForm({ ...form, port: parseInt(e.target.value) })
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Username
               </label>
               <input
@@ -212,12 +213,12 @@ export default function Connections() {
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Password
               </label>
               <input
@@ -226,12 +227,12 @@ export default function Connections() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Database Name
               </label>
               <input
@@ -242,12 +243,12 @@ export default function Connections() {
                   setForm({ ...form, database_name: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 SSL Connection
               </label>
               <select
@@ -255,7 +256,7 @@ export default function Connections() {
                 onChange={(e) =>
                   setForm({ ...form, ssl: e.target.value === "true" })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-800 bg-black rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-helius-orange focus:border-helius-orange text-white ring-helius-orange sm:text-sm"
               >
                 <option value="false">No SSL</option>
                 <option value="true">Use SSL</option>
@@ -266,7 +267,7 @@ export default function Connections() {
           <div className="pt-4">
             <Button
               type="submit"
-              className="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-300"
+              className="w-full md:w-auto px-6 py-3 bg-helius-orange/80 text-white font-medium rounded-md hover:!bg-helius-orange focus:outline-none focus:ring-2 focus:ring-helius-orange/70 focus:ring-offset-2 transition-colors duration-300"
             >
               Test & Add Connection
             </Button>
