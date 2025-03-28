@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(safeConnections);
 }
 
-// Optional: If your frontend also sends POST requests to this endpoint
 export async function POST(req: NextRequest) {
   const user = await authenticate(req);
   if (!user)
@@ -23,6 +22,12 @@ export async function POST(req: NextRequest) {
 
   const isValid = await DatabaseConnectionModel.testConnection(connectionData);
   if (!isValid) {
+    console.error("Connection test failed for:", {
+      host: connectionData.host,
+      port: connectionData.port,
+      database_name: connectionData.database_name,
+      ssl: connectionData.ssl,
+    });
     return NextResponse.json(
       { error: "Could not connect to database with provided credentials" },
       { status: 400 }
