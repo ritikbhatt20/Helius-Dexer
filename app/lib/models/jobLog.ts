@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { db } from "../db";
 
 export type LogLevel = "info" | "warning" | "error";

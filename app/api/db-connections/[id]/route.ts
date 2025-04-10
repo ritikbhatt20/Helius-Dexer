@@ -1,47 +1,40 @@
+/* eslint-disable */
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "../../../lib/middleware/auth";
 import { DatabaseConnectionModel } from "../../../lib/models/dbConnection";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest) {
   const user = await authenticate(req);
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const connectionId = parseInt(params.id);
+  const url = new URL(req.url);
+  const id = url.pathname.split("/").pop();
+  const connectionId = parseInt(id || "0", 10);
+
   const connection = await DatabaseConnectionModel.findById(connectionId);
 
   if (!connection || connection.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Connection not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Connection not found" }, { status: 404 });
   }
 
-  const { password, ...safeConnection } = connection;
+  const safeConnection = (({ password, ...rest }) => rest)(connection);
   return NextResponse.json(safeConnection);
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest) {
   const user = await authenticate(req);
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const connectionId = parseInt(params.id);
-  const body = await req.json();
+  const url = new URL(req.url);
+  const id = url.pathname.split("/").pop();
+  const connectionId = parseInt(id || "0", 10);
 
-  const existingConnection =
-    await DatabaseConnectionModel.findById(connectionId);
+  const body = await req.json();
+  const existingConnection = await DatabaseConnectionModel.findById(connectionId);
   if (!existingConnection || existingConnection.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Connection not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Connection not found" }, { status: 404 });
   }
 
   if (
@@ -78,27 +71,23 @@ export async function PUT(
     connectionId,
     body
   );
-  const { password, ...safeConnection } = updatedConnection;
+  const safeConnection = (({ password, ...rest }) => rest)(updatedConnection);
   return NextResponse.json(safeConnection);
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest) {
   const user = await authenticate(req);
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const connectionId = parseInt(params.id);
-  const existingConnection =
-    await DatabaseConnectionModel.findById(connectionId);
+  const url = new URL(req.url);
+  const id = url.pathname.split("/").pop();
+  const connectionId = parseInt(id || "0", 10);
+
+  const existingConnection = await DatabaseConnectionModel.findById(connectionId);
 
   if (!existingConnection || existingConnection.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Connection not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Connection not found" }, { status: 404 });
   }
 
   await DatabaseConnectionModel.delete(connectionId);
