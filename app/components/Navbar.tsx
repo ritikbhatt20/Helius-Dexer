@@ -108,6 +108,12 @@ export const Navbar = () => {
                 Dashboard
               </Link>
               <Link
+                href="/connections"
+                className="text-md font-medium text-white hover:text-helius-orange "
+              >
+                Connections
+              </Link>
+              <Link
                 href="/jobs"
                 className="text-md font-medium text-white hover:text-helius-orange "
               >
