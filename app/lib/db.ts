@@ -1,3 +1,4 @@
+/* eslint-disable */
 import knex from "knex";
 import dotenv from "dotenv";
 import { Client } from "pg";

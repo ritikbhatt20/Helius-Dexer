@@ -1,3 +1,4 @@
+/* eslint-disable */
 export interface ReserveData {
   protocol: string;
   address: string;

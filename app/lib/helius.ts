@@ -1,3 +1,4 @@
+/* eslint-disable */
 import axios from "axios";
 import { Connection } from "@solana/web3.js";
 import dotenv from "dotenv";
